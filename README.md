@@ -1,6 +1,8 @@
-# Lever MCP Server
+# Lever MCP Server (Local)
 
-A MCP server that integrates Lever ATS with Claude Desktop and other MCP clients, enabling recruiters to manage their recruiting workflows through natural language commands. Built on Cloudflare Workers for global edge deployment.
+A local MCP server that connects Claude Desktop to Lever ATS, enabling recruiters to manage their recruiting workflows through natural language commands — no cloud hosting or Cloudflare account required.
+
+> This is a local adaptation of the original [lever-mcp-server](https://github.com/the-sid-dani/lever-mcp-server) by the-sid-dani. The original version runs on Cloudflare Workers; this version runs directly on your machine.
 
 ## 🚀 Features
 
@@ -30,27 +32,22 @@ A MCP server that integrates Lever ATS with Claude Desktop and other MCP clients
 - `lever_get_stages` - Get hiring pipeline stages
 - `lever_get_archive_reasons` - Get available archive reasons
 
-## 🏗️ Architecture
+## 🏗️ How It Works
 
-- **Cloudflare Workers**: Serverless edge deployment
-- **TypeScript**: Full type safety with Lever API types
-- **MCP Protocol**: Standard Model Context Protocol implementation
-- **SSE Endpoint**: Server-sent events for real-time communication
-- **Rate Limiting**: Built-in protection (respects Lever's 10 req/sec limit)
+Instead of deploying to the cloud, this server runs as a local process on your machine. Claude Desktop launches it automatically and communicates with it via stdio (a direct pipe between two programs on the same computer). Your Lever API key stays on your machine in a `.env` file and never leaves it.
 
 ## 📋 Prerequisites
 
-- [Cloudflare account](https://cloudflare.com)
 - [Lever API key](https://hire.lever.co/settings/integrations)
 - Node.js 18+ and npm
-- [Wrangler CLI](https://developers.cloudflare.com/workers/cli-wrangler/install-update)
+- Claude Desktop
 
 ## 🛠️ Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/the-sid-dani/lever-mcp-server.git
-   cd lever-mcp-server
+   git clone https://github.com/collinalldata/local-lever-mcp.git
+   cd local-lever-mcp
    ```
 
 2. **Install dependencies**
@@ -58,58 +55,37 @@ A MCP server that integrates Lever ATS with Claude Desktop and other MCP clients
    npm install
    ```
 
-3. **Configure Cloudflare**
+3. **Add your Lever API key**
+
+   Copy the example env file and fill in your key:
    ```bash
-   # Login to Cloudflare
-   npx wrangler login
-   
-   # Set your Lever API key as a secret
-   npx wrangler secret put LEVER_API_KEY
-   # When prompted, paste your Lever API key
+   cp .env.example .env
    ```
+   Then open `.env` and replace `your_lever_api_key_here` with your actual Lever API key.
 
-4. **Deploy to Cloudflare Workers**
+4. **Build the project**
    ```bash
-   npm run deploy
-   # or use the deployment script
-   ./deploy.sh
+   npm run build
    ```
+   This compiles the TypeScript source code into JavaScript that Node.js can run.
 
-   Your server will be deployed to: `https://lever-mcp-remote.<your-subdomain>.workers.dev`
+## 🔌 Connecting to Claude Desktop
 
-## 🔌 Connecting to MCP Clients
+1. Open Claude Desktop and go to **Settings > Developer > Edit Config**
 
-### Claude Desktop
-
-1. Install the MCP remote proxy:
-   ```bash
-   npm install -g mcp-remote
-   ```
-
-2. Open Claude Desktop and go to **Settings > Developer > Edit Config**
-
-3. Add your server configuration:
+2. Add the following to your config file (replace the path with wherever you cloned this repo):
    ```json
    {
      "mcpServers": {
        "lever-recruiting": {
-         "command": "npx",
-         "args": [
-           "mcp-remote",
-           "https://lever-mcp-remote.<your-subdomain>.workers.dev/sse"
-         ]
+         "command": "node",
+         "args": ["C:/path/to/local-lever-mcp/dist/local.js"]
        }
      }
    }
    ```
 
-4. Restart Claude Desktop - you should see the Lever tools available!
-
-### Cloudflare AI Playground
-
-1. Go to [playground.ai.cloudflare.com](https://playground.ai.cloudflare.com/)
-2. Enter your deployed MCP server URL: `https://lever-mcp-remote.<your-subdomain>.workers.dev/sse`
-3. Start using your Lever tools directly from the playground!
+3. Restart Claude Desktop — you should see the Lever tools available!
 
 ## 💬 Usage Examples
 
@@ -129,10 +105,12 @@ Once connected to Claude Desktop, you can use natural language commands:
 
 ## 🧑‍💻 Development
 
-### Local Development
 ```bash
-# Run local development server
-npm run dev
+# Rebuild after making changes to the source code
+npm run build
+
+# Run the local server directly (for testing outside Claude Desktop)
+npm run start:local
 
 # Type checking
 npm run type-check
@@ -144,54 +122,38 @@ npm run lint:fix
 npm run format
 ```
 
-### Testing with MCP Inspector
-```bash
-# Install MCP Inspector
-npm install -g @modelcontextprotocol/inspector
-
-# Connect to your local or deployed server
-npx @modelcontextprotocol/inspector
-# Enter: http://localhost:8787/sse (local)
-# Or: https://lever-mcp-remote.<your-subdomain>.workers.dev/sse (deployed)
-```
-
 ## 📁 Project Structure
 
 ```
 ├── src/
-│   ├── index.ts              # Main server entry point
+│   ├── local.ts              # Local entry point (Claude Desktop uses this)
+│   ├── server.ts             # Original cloud entry point (not used locally)
+│   ├── tools.ts              # Registers all Lever tools
+│   ├── additional-tools.ts   # Extended tool implementations
+│   ├── interview-tools.ts    # Interview management tools
 │   ├── lever/
 │   │   └── client.ts         # Lever API client
-│   ├── additional-tools.ts   # Extended tool implementations
 │   └── types/
 │       └── lever.ts          # TypeScript type definitions
-├── wrangler.jsonc            # Cloudflare Workers configuration
-├── deploy.sh                 # Deployment helper script
-└── CLAUDE.md                 # Claude Code guidelines
+├── dist/                     # Compiled JavaScript (generated by npm run build)
+├── .env                      # Your Lever API key (never committed to git)
+├── .env.example              # Template showing what .env should look like
+└── wrangler.jsonc            # Cloudflare config (only needed for cloud version)
 ```
 
 ## 🔒 Security
 
-- API keys are stored as Cloudflare secrets (never in code)
-- No authentication required for the MCP endpoint (add auth if needed for production)
-- Rate limiting prevents API abuse
-- All requests are logged for monitoring
+- Your Lever API key is stored in a local `.env` file that is excluded from git
+- The server only runs when Claude Desktop is open — it's not always-on
+- No data is sent anywhere except directly to the Lever API
 
 ## ⚠️ Known Limitations
 
-1. **No Text Search on Opportunities**: Lever API limitation - name searches fetch candidates then filter client-side
-2. **File Downloads**: Cannot download files through MCP - access through Lever web interface
+1. **No Text Search on Opportunities**: Lever API limitation — name searches fetch candidates then filter client-side
+2. **File Downloads**: Cannot download files through MCP — access through Lever web interface
 3. **Limited Write Operations**: Can only add notes and archive candidates
 4. **No Application Creation**: Cannot create new applications via API
 5. **No Stage Changes**: Cannot move candidates between stages via API
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📄 License
 
