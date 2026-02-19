@@ -58,7 +58,7 @@ function formatPosting(posting: LeverPosting): Record<string, unknown> {
 // Tracing wrapper for tool execution
 function trace(toolName: string, message: string, data?: unknown) {
 	const traceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-	console.log(`[TOOL ${traceId}] ${toolName}: ${message}`, data ? JSON.stringify(data).substring(0, 200) : "");
+	console.error(`[TOOL ${traceId}] ${toolName}: ${message}`, data ? JSON.stringify(data).substring(0, 200) : "");
 }
 
 /**
@@ -67,7 +67,7 @@ function trace(toolName: string, message: string, data?: unknown) {
 export function registerAllTools(server: McpServer, apiKey: string): void {
 	const client = new LeverClient(apiKey);
 
-	console.log("Registering Lever tools...");
+	console.error("Registering Lever tools...");
 
 	// Register search tools
 	registerSearchTools(server, client);
@@ -84,7 +84,7 @@ export function registerAllTools(server: McpServer, apiKey: string): void {
 	// Register interview tools (from interview-tools.ts)
 	registerInterviewTools(server, client);
 
-	console.log("All Lever tools registered successfully");
+	console.error("All Lever tools registered successfully");
 }
 
 /**

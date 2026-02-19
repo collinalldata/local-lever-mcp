@@ -85,7 +85,7 @@ export class LeverClient {
 			}
 
 			const traceId = `api-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-			console.log(`[API-TRACE ${traceId}] START ${method} ${endpoint}`);
+			console.error(`[API-TRACE ${traceId}] START ${method} ${endpoint}`);
 			const startTime = Date.now();
 
 			try {
@@ -99,7 +99,7 @@ export class LeverClient {
 				});
 
 				const duration = Date.now() - startTime;
-				console.log(`[API-TRACE ${traceId}] Response: ${response.status} | Duration: ${duration}ms | Attempt: ${retryCount + 1}`);
+				console.error(`[API-TRACE ${traceId}] Response: ${response.status} | Duration: ${duration}ms | Attempt: ${retryCount + 1}`);
 
 				if (!response.ok) {
 					const errorText = await response.text();
@@ -144,7 +144,7 @@ export class LeverClient {
 					console.warn(`Empty response from Lever API for ${endpoint}`);
 				}
 				
-				console.log(`[API-TRACE ${traceId}] SUCCESS | Total duration: ${Date.now() - startTime}ms`);
+				console.error(`[API-TRACE ${traceId}] SUCCESS | Total duration: ${Date.now() - startTime}ms`);
 				return responseData;
 			} catch (error) {
 				// Retry on network errors
@@ -177,7 +177,7 @@ export class LeverClient {
 		
 		// Debug logging
 		if (response && response.data && response.data.length > 0) {
-			console.log(`getOpportunities: Got ${response.data.length} candidates, first has name: ${response.data[0].name || 'NO_NAME'}`);
+			console.error(`getOpportunities: Got ${response.data.length} candidates, first has name: ${response.data[0].name || 'NO_NAME'}`);
 		}
 		
 		return response;
@@ -198,8 +198,8 @@ export class LeverClient {
 			}
 			
 			// Log successful fetch for debugging
-			console.log(`Successfully fetched opportunity ${id}, has data: ${!!response.data}`);
-			console.log(`Opportunity data:`, JSON.stringify(response).substring(0, 200));
+			console.error(`Successfully fetched opportunity ${id}, has data: ${!!response.data}`);
+			console.error(`Opportunity data:`, JSON.stringify(response).substring(0, 200));
 			return response;
 		} catch (error) {
 			console.error(`Failed to fetch opportunity ${id}:`, error);
@@ -404,7 +404,7 @@ export class LeverClient {
 			offset = response.next;
 		}
 		
-		console.log(`getPostingsByOwner: Fetched ${allPostings.length} postings in ${batchesFetched} batches for owner search: ${ownerName}`);
+		console.error(`getPostingsByOwner: Fetched ${allPostings.length} postings in ${batchesFetched} batches for owner search: ${ownerName}`);
 		
 		// Filter by owner name (case-insensitive partial match)
 		const filteredPostings = allPostings.filter(posting => {
@@ -414,7 +414,7 @@ export class LeverClient {
 			return false;
 		});
 		
-		console.log(`getPostingsByOwner: Found ${filteredPostings.length} postings for ${ownerName}`);
+		console.error(`getPostingsByOwner: Found ${filteredPostings.length} postings for ${ownerName}`);
 		
 		return {
 			data: filteredPostings,

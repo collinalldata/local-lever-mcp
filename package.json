@@ -6,7 +6,9 @@
 	"scripts": {
 		"build": "tsc",
 		"start": "node dist/server.js",
+		"start:local": "node --env-file=.env dist/local.js",
 		"dev": "tsx watch src/server.ts",
+		"dev:local": "tsx --env-file=.env src/local.ts",
 		"format": "biome format --write",
 		"lint:fix": "biome lint --fix",
 		"type-check": "tsc --noEmit",

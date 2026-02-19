@@ -199,6 +199,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- Built with [Cloudflare Workers](https://workers.cloudflare.com/)
+- Originally created by [the-sid-dani](https://github.com/the-sid-dani/lever-mcp-server) — this repo is a local adaptation of that project
 - Uses the [Model Context Protocol](https://modelcontextprotocol.io/)
 - Integrates with [Lever ATS API](https://hire.lever.co/developer/documentation)
