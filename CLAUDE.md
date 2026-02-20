@@ -37,21 +37,21 @@ LEVER_API_KEY=your-key-here
 
 ## Entry Points — Which File Actually Runs
 
-This project has multiple entry point files due to its history. Only one is active locally:
+This project has two active entry point files depending on how it's being run:
 
 | File | Status | Purpose |
 |------|--------|---------|
-| `src/server.ts` | ✅ **Active — this is what Claude Desktop runs** | Local stdio + Cloud Run HTTP server |
-| `src/index.ts` | ⚠️ Legacy — NOT used locally | Original Cloudflare Workers version |
+| `src/server.ts` | ✅ **Active — Cloud Run HTTP server** | Deployed to Google Cloud Run, uses HTTP transport |
+| `src/local.ts` | ✅ **Active — this is what Claude Desktop runs** | Local stdio transport for Claude Desktop |
 
 When Claude Desktop starts the server, it runs:
 ```
-node dist/server.js
+node dist/local.js
 ```
-...which is the compiled output of `src/server.ts`.
+...which is the compiled output of `src/local.ts`.
 
-`src/index.ts` still exists and contains a lot of tool definitions, but it is the old Cloudflare
-Workers path. Do not confuse it for the active entry point.
+Both entry points load all the same tools via `registerAllTools()` in `src/tools.ts` — the only
+difference is the transport layer (how Claude communicates with the server).
 
 ---
 
@@ -91,11 +91,15 @@ src/
                           Handles OAuth for cloud mode, stdio for local mode.
                           Calls registerAllTools() to load all the tools.
 
-  index.ts              ← LEGACY Cloudflare Workers entry point. Not used locally.
-                          Contains the LeverMCP class with most tool definitions.
-                          Kept for reference but is not the active code path.
+  local.ts              ← Entry point for Claude Desktop (local stdio transport).
+                          Reads the API key from .env, creates the MCP server,
+                          and connects it to stdio so Claude Desktop can talk to it.
 
-  additional-tools.ts   ← Registers extra tools on top of what's in index.ts.
+  tools.ts              ← Registers all the "main" tools (search, candidate, utility).
+                          Called by both server.ts and local.ts on startup.
+                          Also calls into additional-tools.ts and interview-tools.ts.
+
+  additional-tools.ts   ← Registers extra tools on top of what's in tools.ts.
                           Contains: search candidates, list files, list applications,
                           list/get requisitions, archive candidate, search archived
                           candidates, update candidate.
@@ -138,7 +142,7 @@ dist/                   ← Auto-generated compiled JavaScript. Never edit manua
 These are the capabilities Claude has through this server. Each "tool" is a function Claude
 can call by name.
 
-### Tools from `src/index.ts` (registered via LeverMCP class)
+### Tools from `src/tools.ts` (registered via registerAllTools)
 
 | Tool | What It Does |
 |------|-------------|
@@ -177,8 +181,8 @@ can call by name.
 
 ### How tools get registered
 
-`src/server.ts` calls `registerAllTools(server, apiKey)` on startup. That function (defined in
-`src/tools.ts` or similar) calls:
+`src/local.ts` (or `src/server.ts` for cloud) calls `registerAllTools(server, apiKey)` on startup.
+That function, defined in `src/tools.ts`, calls:
 - `registerAdditionalTools()` from `additional-tools.ts`
 - `registerInterviewTools()` from `interview-tools.ts`
 
@@ -224,10 +228,11 @@ and resolving names to IDs automatically. Partial matching is supported ("Phone"
 
 ## History / Context
 
-This project started as a **Cloudflare Workers** deployment (the code in `src/index.ts`). It was
-later adapted to run locally on the user's computer using Node.js and stdio transport. The local
-version lives on the `local-node` git branch. The `main` branch still contains the original
-Cloudflare version.
+This project started as a **Cloudflare Workers** deployment. It was later adapted to run locally
+on the user's computer using Node.js and stdio transport. The local version lives on the
+`local-node` git branch. The `main` branch still contains the original Cloudflare version.
+The legacy Cloudflare files (`src/index.ts`, `wrangler.jsonc`, `deploy.sh`) have since been
+deleted from the `local-node` branch as part of a cleanup.
 
 The key bug fixed during local adaptation: `console.log()` calls were crashing Claude Desktop
 because stdout is reserved for JSON protocol messages in stdio mode. Fixed by switching all
